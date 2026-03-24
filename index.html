@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Indicadores</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f3ef;
+    --surface: #ffffff;
+    --surface-alt: #f9f8f5;
+    --border: #e2e0d8;
+    --text-primary: #1a1916;
+    --text-secondary: #6b6860;
+    --text-muted: #a8a59e;
+    --accent: #1a3a5c;
+    --accent-light: #e8eef5;
+    --success: #2d6a4f;
+    --success-bg: #e8f4ee;
+    --danger: #9b2226;
+    --danger-bg: #fce8e8;
+    --warning: #7d5a00;
+    --warning-bg: #fdf3d0;
+    --gold: #c9a84c;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+
+  /* LOGIN */
+  #loginScreen {
+    position: fixed;
+    inset: 0;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  .login-box {
+    background: #fff;
+    border-radius: 16px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+
+  .login-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .login-logo span { color: var(--gold); }
+
+  .login-sub {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+  }
+
+  .login-field {
+    margin-bottom: 16px;
+  }
+
+  .login-field label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+
+  .login-field input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .login-field input:focus { border-color: var(--accent); }
+
+  .login-error {
+    font-size: 0.78rem;
+    color: var(--danger);
+    margin-bottom: 14px;
+    min-height: 18px;
+  }
+
+  .btn-login {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .btn-login:hover { background: #122a45; }
+
+  /* HEADER */
+  header {
+    background: var(--accent);
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    border-bottom: 3px solid var(--gold);
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.25rem;
+    color: #fff;
+    letter-spacing: 0.02em;
+  }
+
+  .logo span { color: var(--gold); }
+
+  .header-meta {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.55);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* MAIN LAYOUT */
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  /* IMPORT SECTION */
+  .import-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 36px;
+    box-shadow: var(--shadow);
+  }
+
+  .section-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.35rem;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  .import-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  @media (max-width: 700px) {
+    .import-grid { grid-template-columns: 1fr; }
+  }
+
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 32px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: var(--surface-alt);
+  }
+
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-light);
+  }
+
+  .drop-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+  }
+
+  .drop-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .drop-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  input[type="file"] { display: none; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #122a45; }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+    margin-top: 14px;
+  }
+
+  .btn-outline:hover { background: var(--accent-light); }
+
+  .format-hint {
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+
+  .format-hint h4 {
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .format-hint table {
+    width: 100%;
+    font-size: 0.78rem;
+    border-collapse: collapse;
+  }
+
+  .format-hint th {
+    background: var(--accent);
+    color: #fff;
+    padding: 6px 10px;
+    text-align: left;
+    font-weight: 500;
+  }
+
+  .format-hint td {
+    padding: 5px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+
+  .format-hint tr:last-child td { border-bottom: none; }
+
+  .sample-btn {
+    display: block;
+    margin-top: 12px;
+    font-size: 0.78rem;
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: underline;
+    background: none;
+    border: none;
+    font-family: inherit;
+    padding: 0;
+  }
+
+  /* PERIOD SELECTOR */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .period-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px;
+  }
+
+  .period-tab {
+    padding: 6px 16px;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+
+  .period-tab.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .dashboard-title-area h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: var(--text-primary);
+  }
+
+  .dashboard-title-area p {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* KPI SUMMARY */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  @media (max-width: 700px) { .kpi-row { grid-template-columns: 1fr; } }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 24px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .kpi-card.above::before { background: var(--success); }
+  .kpi-card.below::before { background: var(--danger); }
+  .kpi-card.neutral::before { background: var(--gold); }
+
+  .kpi-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+
+  .kpi-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .kpi-badge.above { background: var(--success-bg); color: var(--success); }
+  .kpi-badge.below { background: var(--danger-bg); color: var(--danger); }
+  .kpi-badge.neutral { background: var(--warning-bg); color: var(--warning); }
+
+  /* INDICATORS TABLE */
+  .indicators-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    margin-bottom: 28px;
+  }
+
+  .indicators-header {
+    padding: 22px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .indicators-header h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--accent);
+  }
+
+  table.ind-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .ind-table th {
+    background: #f0eeea;
+    padding: 11px 20px;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+  }
+
+  .ind-table td {
+    padding: 14px 20px;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    vertical-align: middle;
+  }
+
+  .ind-table tr:last-child td { border-bottom: none; }
+  .ind-table tr:hover td { background: var(--surface-alt); }
+
+  .ind-name { font-weight: 600; color: var(--text-primary); }
+
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .progress-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: #e8e6e0;
+    border-radius: 999px;
+    overflow: hidden;
+    min-width: 80px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.6s ease;
+  }
+
+  .progress-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-width: 40px;
+    text-align: right;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 64px 24px;
+    color: var(--text-muted);
+  }
+
+  .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+  .empty-state p { font-size: 0.88rem; }
+
+  /* CHART BAR */
+  .chart-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: var(--shadow);
+  }
+
+  .chart-section h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--accent);
+    margin-bottom: 24px;
+  }
+
+  .bar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .bar-row { display: flex; flex-direction: column; gap: 4px; }
+  .bar-label { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); }
+  .bar-tracks { display: flex; flex-direction: column; gap: 4px; }
+
+  .bar-track {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .bar-type {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    width: 60px;
+    flex-shrink: 0;
+  }
+
+  .bar-bg {
+    flex: 1;
+    height: 10px;
+    background: #e8e6e0;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .bar-fill { height: 100%; border-radius: 999px; transition: width 0.7s ease; }
+  .bar-fill.meta { background: var(--accent); opacity: 0.35; }
+  .bar-fill.real { background: var(--accent); }
+
+  .bar-val {
+    font-size: 0.78rem;
+    font-weight: 600;
+    min-width: 50px;
+    text-align: right;
+    color: var(--text-primary);
+  }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+  }
+
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* toast */
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--accent);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 0.83rem;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  .toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">Painel de <span>Indicadores</span></div>
+    <div class="login-sub">Acesso restrito — faça login para continuar</div>
+    <div class="login-field">
+      <label>Usuário</label>
+      <input type="text" id="loginUser" placeholder="Digite seu usuário" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="loginPass" placeholder="Digite sua senha" autocomplete="current-password">
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="btn-login" onclick="doLogin()">Entrar</button>
+  </div>
+</div>
+
+<div id="appContent" style="display:none">
+
+<header>
+  <div class="logo">Painel de <span>Indicadores</span></div>
+  <div class="header-meta" id="lastUpdate">Nenhum dado carregado</div>
+</header>
+
+<main>
+
+  <!-- IMPORT -->
+  <div class="import-section">
+    <div class="section-label">Etapa 1</div>
+    <div class="section-title">Importar Planilha</div>
+    <div class="import-grid">
+      <div>
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+          <div class="drop-icon">📊</div>
+          <div class="drop-title">Arraste seu arquivo aqui</div>
+          <div class="drop-sub">CSV ou Excel (.xlsx) — ou clique para selecionar</div>
+        </div>
+        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
+        <button class="btn btn-outline" onclick="loadSample()">⬇ Carregar dados de exemplo</button>
+      </div>
+      <div class="format-hint">
+        <h4>Formato esperado do CSV</h4>
+        <table>
+          <tr>
+            <th>Indicador</th>
+            <th>Meta</th>
+            <th>Realizado</th>
+            <th>Período</th>
+          </tr>
+          <tr><td>Vendas</td><td>100000</td><td>87500</td><td>Jan/2025</td></tr>
+          <tr><td>Satisfação</td><td>90</td><td>93</td><td>Jan/2025</td></tr>
+          <tr><td>Entregas</td><td>200</td><td>215</td><td>Jan/2025</td></tr>
+        </table>
+        <button class="sample-btn" onclick="downloadTemplate()">⬇ Baixar modelo .csv</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" style="display:none">
+
+    <div class="filter-bar">
+      <div class="dashboard-title-area">
+        <h2>Metas vs Realizado</h2>
+        <p id="periodInfo">—</p>
+      </div>
+      <div class="period-tabs" id="periodTabs"></div>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="kpi-row" id="kpiRow"></div>
+
+    <!-- TABLE -->
+    <div class="indicators-section">
+      <div class="indicators-header">
+        <h3>Detalhamento por Indicador</h3>
+      </div>
+      <table class="ind-table">
+        <thead>
+          <tr>
+            <th>Indicador</th>
+            <th>Meta</th>
+            <th>Realizado</th>
+            <th>Atingimento</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- CHART -->
+    <div class="chart-section">
+      <h3>Visão Comparativa</h3>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--accent);opacity:0.35"></div> Meta
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--accent)"></div> Realizado
+        </div>
+      </div>
+      <div class="bar-chart" id="barChart"></div>
+    </div>
+
+  </div>
+
+  <!-- EMPTY placeholder -->
+  <div id="emptyState">
+    <div class="indicators-section">
+      <div class="empty-state">
+        <div class="empty-icon">📂</div>
+        <p>Importe sua planilha CSV para visualizar os indicadores.</p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+</div><!-- /appContent -->
+
+<script>
+  // LOGIN
+  const USER = 'Massivo';
+  const PASS = 'claro26';
+
+  document.getElementById('loginPass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  document.getElementById('loginUser').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('loginPass').focus();
+  });
+
+  function doLogin() {
+    const u = document.getElementById('loginUser').value.trim();
+    const p = document.getElementById('loginPass').value;
+    if (u === USER && p === PASS) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('appContent').style.display = 'block';
+    } else {
+      document.getElementById('loginError').textContent = '⚠ Usuário ou senha incorretos.';
+      document.getElementById('loginPass').value = '';
+      document.getElementById('loginPass').focus();
+    }
+  }
+
+  let allData = [];
+  let periods = [];
+  let activePeriod = '';
+
+  // Drag & drop
+  const dropZone = document.getElementById('dropZone');
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) readFile(file);
+  });
+
+  document.getElementById('fileInput').addEventListener('change', e => {
+    if (e.target.files[0]) readFile(e.target.files[0]);
+  });
+
+  function readFile(file) {
+    const reader = new FileReader();
+    const isXlsx = file.name.match(/\.(xlsx|xls)$/i);
+    reader.onload = ev => {
+      try {
+        if (isXlsx) {
+          const wb = XLSX.read(ev.target.result, { type: 'binary' });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const data = XLSX.utils.sheet_to_csv(ws);
+          parseCSV(data);
+        } else {
+          parseCSV(ev.target.result);
+        }
+        showToast('✓ Arquivo carregado com sucesso');
+        document.getElementById('lastUpdate').textContent = 'Atualizado: ' + new Date().toLocaleString('pt-BR');
+      } catch(e) {
+        showToast('⚠ Erro ao ler o arquivo. Verifique o formato.');
+      }
+    };
+    if (isXlsx) {
+      reader.readAsBinaryString(file);
+    } else {
+      reader.readAsText(file, 'UTF-8');
+    }
+  }
+
+  function parseCSV(text) {
+    const lines = text.trim().split('\n').map(l => l.split(/[,;]/).map(c => c.trim().replace(/^"|"$/g, '')));
+    const headers = lines[0].map(h => h.toLowerCase());
+    const iIdx = headers.findIndex(h => h.includes('indicador') || h.includes('nome') || h.includes('name'));
+    const mIdx = headers.findIndex(h => h.includes('meta') || h.includes('target') || h.includes('goal'));
+    const rIdx = headers.findIndex(h => h.includes('realizado') || h.includes('real') || h.includes('actual'));
+    const pIdx = headers.findIndex(h => h.includes('período') || h.includes('periodo') || h.includes('period') || h.includes('mes') || h.includes('mês'));
+
+    if (iIdx < 0 || mIdx < 0 || rIdx < 0) throw new Error('Colunas não encontradas');
+
+    allData = lines.slice(1).filter(l => l.length > 1 && l[iIdx]).map(l => ({
+      nome: l[iIdx],
+      meta: parseNum(l[mIdx]),
+      realizado: parseNum(l[rIdx]),
+      periodo: pIdx >= 0 ? l[pIdx] : 'Geral'
+    }));
+
+    periods = [...new Set(allData.map(d => d.periodo))];
+    activePeriod = periods[0];
+    renderPeriodTabs();
+    renderDashboard();
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('emptyState').style.display = 'none';
+  }
+
+  function parseNum(val) {
+    if (!val) return 0;
+    return parseFloat(val.toString().replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
+  }
+
+  function renderPeriodTabs() {
+    const tabs = document.getElementById('periodTabs');
+    tabs.innerHTML = periods.map(p =>
+      `<button class="period-tab ${p === activePeriod ? 'active' : ''}" onclick="selectPeriod('${p}')">${p}</button>`
+    ).join('');
+  }
+
+  function selectPeriod(p) {
+    activePeriod = p;
+    renderPeriodTabs();
+    renderDashboard();
+  }
+
+  function renderDashboard() {
+    const data = allData.filter(d => d.periodo === activePeriod);
+    document.getElementById('periodInfo').textContent = `Período: ${activePeriod} — ${data.length} indicadores`;
+    renderKPIs(data);
+    renderTable(data);
+    renderChart(data);
+  }
+
+  function pct(meta, real) {
+    if (!meta) return 0;
+    return Math.round((real / meta) * 100);
+  }
+
+  function statusClass(p) {
+    if (p >= 100) return 'above';
+    if (p >= 85) return 'neutral';
+    return 'below';
+  }
+
+  function statusLabel(p) {
+    if (p >= 100) return '✓ Acima da meta';
+    if (p >= 85) return '~ Próximo da meta';
+    return '✕ Abaixo da meta';
+  }
+
+  function renderKPIs(data) {
+    const total = data.length;
+    const acima = data.filter(d => pct(d.meta, d.realizado) >= 100).length;
+    const abaixo = data.filter(d => pct(d.meta, d.realizado) < 85).length;
+    const proximo = total - acima - abaixo;
+    const mediaAtingimento = total ? Math.round(data.reduce((s, d) => s + pct(d.meta, d.realizado), 0) / total) : 0;
+
+    document.getElementById('kpiRow').innerHTML = `
+      <div class="kpi-card ${mediaAtingimento >= 100 ? 'above' : mediaAtingimento >= 85 ? 'neutral' : 'below'}">
+        <div class="kpi-label">Atingimento Médio</div>
+        <div class="kpi-value">${mediaAtingimento}%</div>
+        <span class="kpi-badge ${mediaAtingimento >= 100 ? 'above' : mediaAtingimento >= 85 ? 'neutral' : 'below'}">${mediaAtingimento >= 100 ? '↑' : mediaAtingimento >= 85 ? '→' : '↓'} ${mediaAtingimento >= 100 ? 'Acima' : mediaAtingimento >= 85 ? 'Próximo' : 'Abaixo'}</span>
+      </div>
+      <div class="kpi-card above">
+        <div class="kpi-label">Metas Atingidas</div>
+        <div class="kpi-value">${acima}<span style="font-size:1rem;color:var(--text-muted)"> / ${total}</span></div>
+        <span class="kpi-badge above">✓ ${total ? Math.round(acima/total*100) : 0}% do total</span>
+      </div>
+      <div class="kpi-card ${abaixo > 0 ? 'below' : 'above'}">
+        <div class="kpi-label">Abaixo da Meta</div>
+        <div class="kpi-value">${abaixo}<span style="font-size:1rem;color:var(--text-muted)"> / ${total}</span></div>
+        <span class="kpi-badge ${abaixo > 0 ? 'below' : 'above'}">${abaixo > 0 ? '✕ Atenção necessária' : '✓ Tudo bem'}</span>
+      </div>
+    `;
+  }
+
+  function fmt(n) {
+    if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n/1000).toFixed(1) + 'k';
+    return n.toLocaleString('pt-BR');
+  }
+
+  function renderTable(data) {
+    const body = document.getElementById('tableBody');
+    if (!data.length) { body.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:32px">Sem dados para este período</td></tr>`; return; }
+
+    body.innerHTML = data.map(d => {
+      const p = pct(d.meta, d.realizado);
+      const sc = statusClass(p);
+      const colors = { above: 'var(--success)', neutral: 'var(--gold)', below: 'var(--danger)' };
+      const bgColors = { above: 'var(--success-bg)', neutral: 'var(--warning-bg)', below: 'var(--danger-bg)' };
+      return `
+        <tr>
+          <td class="ind-name">${d.nome}</td>
+          <td>${fmt(d.meta)}</td>
+          <td style="font-weight:600;color:var(--text-primary)">${fmt(d.realizado)}</td>
+          <td>
+            <div class="progress-wrap">
+              <div class="progress-bar-bg">
+                <div class="progress-fill" style="width:${Math.min(p,100)}%;background:${colors[sc]}"></div>
+              </div>
+              <span class="progress-label" style="color:${colors[sc]}">${p}%</span>
+            </div>
+          </td>
+          <td>
+            <span style="display:inline-flex;align-items:center;font-size:0.78rem;font-weight:600;padding:3px 10px;border-radius:4px;background:${bgColors[sc]};color:${colors[sc]}">
+              <span class="status-dot" style="background:${colors[sc]}"></span>${statusLabel(p)}
+            </span>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  function renderChart(data) {
+    if (!data.length) return;
+    const maxVal = Math.max(...data.flatMap(d => [d.meta, d.realizado])) || 1;
+    document.getElementById('barChart').innerHTML = data.map(d => {
+      const p = pct(d.meta, d.realizado);
+      const sc = statusClass(p);
+      const colors = { above: 'var(--success)', neutral: 'var(--gold)', below: 'var(--danger)' };
+      return `
+        <div class="bar-row">
+          <div class="bar-label">${d.nome}</div>
+          <div class="bar-tracks">
+            <div class="bar-track">
+              <span class="bar-type">Meta</span>
+              <div class="bar-bg"><div class="bar-fill meta" style="width:${(d.meta/maxVal*100)}%"></div></div>
+              <span class="bar-val" style="color:var(--text-muted)">${fmt(d.meta)}</span>
+            </div>
+            <div class="bar-track">
+              <span class="bar-type">Realizado</span>
+              <div class="bar-bg"><div class="bar-fill" style="width:${(d.realizado/maxVal*100)}%;background:${colors[sc]}"></div></div>
+              <span class="bar-val" style="color:${colors[sc]}">${fmt(d.realizado)}</span>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function loadSample() {
+    const csv = `Indicador,Meta,Realizado,Período
+Receita Total,500000,487300,Jan/2025
+Novos Clientes,150,163,Jan/2025
+Satisfação do Cliente,90,88,Jan/2025
+Entregas no Prazo,95,97,Jan/2025
+Custo Operacional,80000,84500,Jan/2025
+Receita Total,500000,531000,Fev/2025
+Novos Clientes,150,142,Fev/2025
+Satisfação do Cliente,90,93,Fev/2025
+Entregas no Prazo,95,91,Fev/2025
+Custo Operacional,80000,78200,Fev/2025`;
+    parseCSV(csv);
+    showToast('✓ Dados de exemplo carregados');
+    document.getElementById('lastUpdate').textContent = 'Dados de exemplo — ' + new Date().toLocaleString('pt-BR');
+  }
+
+  function downloadTemplate() {
+    const rows = [
+      ['Indicador', 'Meta', 'Realizado', 'Período'],
+      ['Vendas', 100000, 87500, 'Jan/2025'],
+      ['Satisfação', 90, 93, 'Jan/2025'],
+      ['Entregas', 200, 215, 'Jan/2025'],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:20},{wch:12},{wch:12},{wch:12}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Indicadores');
+    XLSX.writeFile(wb, 'modelo_indicadores.xlsx');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+</script>
+</body>
+</html>
